@@ -9,7 +9,9 @@
 .pytest_cache/
 cpp-backend-tests-practicum/
 **/build
+**/venv
 .vscode
+.cmake
 results.xml
 
 # User-specific stuff

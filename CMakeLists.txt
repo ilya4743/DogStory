@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.11)
 
 project(game_server CXX)
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(ProcessorCount)
 ProcessorCount(N)
@@ -13,11 +14,12 @@ if(NOT N EQUAL 0)
 endif()
 message("Cmake make program" ${CMAKE_MAKE_PROGRAM})
 
-include(${CMAKE_BINARY_DIR}/conanbuildinfo_multi.cmake)
-conan_basic_setup(TARGETS)
-
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
+
+find_package(Boost REQUIRED CONFIG COMPONENTS  url log serialization program_options)
+find_package(libpqxx REQUIRED CONFIG)
+find_package(Catch2 REQUIRED CONFIG)
 
 add_library(GameModelLib STATIC
 	src/model/collision_detector.cpp
@@ -29,8 +31,8 @@ add_library(GameModelLib STATIC
 	src/model/tagged.h
 )
 
-target_link_libraries(GameModelLib PRIVATE 
-	CONAN_PKG::boost
+target_link_libraries(GameModelLib PUBLIC 
+	Boost::boost
 )
 
 add_executable(game_server
@@ -71,11 +73,14 @@ target_include_directories(game_server PRIVATE
 
 target_link_libraries(game_server PRIVATE 
 	Threads::Threads 
-	CONAN_PKG::boost
-	CONAN_PKG::libpqxx
+	Boost::boost
+	Boost::url
+	Boost::log
+	Boost::serialization
+	Boost::program_options
+	libpqxx::pqxx
 	GameModelLib
 )
-
 SET(GCC_COVERAGE_LINK_FLAGS    "-lboost_url")
 
 add_executable(loot_generator_tests
@@ -84,12 +89,15 @@ add_executable(loot_generator_tests
 	src/model/loot_generator.h
 )
 
-target_link_libraries(loot_generator_tests PRIVATE 
-	CONAN_PKG::catch2
+target_link_libraries(loot_generator_tests PRIVATE
+	Catch2::Catch2WithMain
+	Boost::boost
 )
 
 target_include_directories(loot_generator_tests PRIVATE
 	src/model
+	${Boost_INCLUDE_DIRS}
+    ${Catch2_INCLUDE_DIRS}
 )
 
 add_executable(collision_detector_tests	
@@ -101,10 +109,13 @@ add_executable(collision_detector_tests
 
 target_include_directories(collision_detector_tests PRIVATE
 	src/model
+	${Boost_INCLUDE_DIRS}
+    ${Catch2_INCLUDE_DIRS}
 )
 
 target_link_libraries(collision_detector_tests PRIVATE 
-	CONAN_PKG::catch2
+	Catch2::Catch2WithMain
+    Boost::boost
 )
 
 add_compile_definitions(BOOST_BEAST_USE_STD_STRING_VIEW) 
